@@ -123,7 +123,10 @@ export function ConsolePage() {
     lat: 37.775593,
     lng: -122.418137,
   });
-  const [marker, setMarker] = useState<Coordinates | null>(null);
+    const [marker, setMarker] = useState<Coordinates | null>(null);
+    
+    const [pikachuHealth, setPikachuHealth] = useState(100);
+    const [raichuHealth, setRaichuHealth] = useState(100);
 
   /**
    * Utility for formatting the timing of logs
@@ -381,79 +384,140 @@ export function ConsolePage() {
     // Set transcription, otherwise we don't get user transcriptions back
     client.updateSession({ input_audio_transcription: { model: 'whisper-1' } });
 
-    // Add tools
-    client.addTool(
+      // Add tools
+      client.addTool(
       {
-        name: 'set_memory',
-        description: 'Saves important data about the user into memory.',
-        parameters: {
-          type: 'object',
-          properties: {
-            key: {
-              type: 'string',
-              description:
-                'The key of the memory value. Always use lowercase and underscores, no other characters.',
-            },
-            value: {
-              type: 'string',
-              description: 'Value can be anything represented as a string',
-            },
-          },
-          required: ['key', 'value'],
+        name: 'percentage_health_lost_by_you',
+        description: 'Subtracts what percentage of health you lost to an attack. Returns your new health percentage. ',
+              parameters: {
+                type: 'object',
+                  properties: {
+                      percentDamage: {
+                          type: 'number',
+                          description: 'What percent of health you lost',
+                      },
+                  },
+          required: ['percentDamage'],
         },
       },
-      async ({ key, value }: { [key: string]: any }) => {
-        setMemoryKv((memoryKv) => {
-          const newKv = { ...memoryKv };
-          newKv[key] = value;
-          return newKv;
-        });
-        return { ok: true };
+        async({ percentDamage }: { [key: string]: any }) => {
+              let newHealth = raichuHealth - percentDamage;
+              setRaichuHealth(newHealth);
+            return newHealth;
       }
-    );
-    client.addTool(
-      {
-        name: 'get_weather',
-        description:
-          'Retrieves the weather for a given lat, lng coordinate pair. Specify a label for the location.',
-        parameters: {
-          type: 'object',
-          properties: {
-            lat: {
-              type: 'number',
-              description: 'Latitude',
-            },
-            lng: {
-              type: 'number',
-              description: 'Longitude',
-            },
-            location: {
-              type: 'string',
-              description: 'Name of the location',
-            },
+      );
+      client.addTool(
+        {
+          name: 'percentage_health_lost_by_opponent',
+          description: 'Subtracts what percentage of health your opponent lost to an attack. Returns new health percentage for them. ',
+                parameters: {
+                  type: 'object',
+                    properties: {
+                        percentDamage: {
+                            type: 'number',
+                            description: 'What percent of health they lost',
+                        },
+                    },
+            required: ['percentDamage'],
           },
-          required: ['lat', 'lng', 'location'],
         },
-      },
-      async ({ lat, lng, location }: { [key: string]: any }) => {
-        setMarker({ lat, lng, location });
-        setCoords({ lat, lng, location });
-        const result = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m`
-        );
-        const json = await result.json();
-        const temperature = {
-          value: json.current.temperature_2m as number,
-          units: json.current_units.temperature_2m as string,
-        };
-        const wind_speed = {
-          value: json.current.wind_speed_10m as number,
-          units: json.current_units.wind_speed_10m as string,
-        };
-        setMarker({ lat, lng, location, temperature, wind_speed });
-        return json;
-      }
-    );
+          async({ percentDamage }: { [key: string]: any }) => {
+                let newHealth = pikachuHealth - percentDamage;
+                setPikachuHealth(newHealth);
+              return newHealth;
+        }
+      );
+      client.addTool(
+        {
+          name: 'can_you_dodge',
+          description: 'Outputs if you are allowed to dodge an attack this round.  ',
+                parameters: {
+                  type: 'object',
+                    properties: {
+                        anyNum: {
+                            type: 'number',
+                            description: 'Any number',
+                        },
+                    },
+            required: ['anyNum'],
+          },
+        },
+          async({ anyNum }: { [key: string]: any }) => {
+              return (Math.random() * (3 - 1) + 1) == 1;
+        }
+      );
+    // client.addTool(
+    //   {
+    //     name: 'set_memory',
+    //     description: 'Saves important data about the user into memory.',
+    //     parameters: {
+    //       type: 'object',
+    //       properties: {
+    //         key: {
+    //           type: 'string',
+    //           description:
+    //             'The key of the memory value. Always use lowercase and underscores, no other characters.',
+    //         },
+    //         value: {
+    //           type: 'string',
+    //           description: 'Value can be anything represented as a string',
+    //         },
+    //       },
+    //       required: ['key', 'value'],
+    //     },
+    //   },
+    //   async ({ key, value }: { [key: string]: any }) => {
+    //     setMemoryKv((memoryKv) => {
+    //       const newKv = { ...memoryKv };
+    //       newKv[key] = value;
+    //       return newKv;
+    //     });
+    //     return { ok: true };
+    //   }
+    // );
+    // client.addTool(
+    //   {
+    //     name: 'get_weather',
+    //     description:
+    //       'Retrieves the weather for a given lat, lng coordinate pair. Specify a label for the location.',
+    //     parameters: {
+    //       type: 'object',
+    //       properties: {
+    //         lat: {
+    //           type: 'number',
+    //           description: 'Latitude',
+    //         },
+    //         lng: {
+    //           type: 'number',
+    //           description: 'Longitude',
+    //         },
+    //         location: {
+    //           type: 'string',
+    //           description: 'Name of the location',
+    //         },
+    //       },
+    //       required: ['lat', 'lng', 'location'],
+    //     },
+    //   },
+    //   async ({ lat, lng, location }: { [key: string]: any }) => {
+    //     setMarker({ lat, lng, location });
+    //     setCoords({ lat, lng, location });
+    //     const result = await fetch(
+    //       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m`
+    //     );
+    //     const json = await result.json();
+    //     const temperature = {
+    //       value: json.current.temperature_2m as number,
+    //       units: json.current_units.temperature_2m as string,
+    //     };
+    //     const wind_speed = {
+    //       value: json.current.wind_speed_10m as number,
+    //       units: json.current_units.wind_speed_10m as string,
+    //     };
+    //     setMarker({ lat, lng, location, temperature, wind_speed });
+    //     return json;
+    //   }
+    // );
 
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
@@ -719,9 +783,9 @@ export function ConsolePage() {
             </div>
           </div>
           <div className="content-block kv">
-            <div className="content-block-title">set_memory()</div>
+            <div className="content-block-title">Health</div>
             <div className="content-block-body content-kv">
-              {JSON.stringify(memoryKv, null, 2)}
+              Pikachu health {pikachuHealth}, Raichu Health {raichuHealth}
             </div>
           </div>
         </div>
